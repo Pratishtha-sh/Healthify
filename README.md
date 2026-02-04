@@ -48,6 +48,18 @@ To build a reliable and user-friendly hospital management platform that centrali
 - Secure handling of sensitive healthcare data.
 
 ---
+## Branching Strategy
+
+This project follows **GitHub Flow** as the branching strategy.
+
+- The `main` branch always contains stable and deployable code.
+- New development work is done on short-lived feature branches.
+- Feature branches are created using descriptive names such as `feature/docs-setup`.
+- Once a feature is complete, it is merged back into the `main` branch.
+
+This approach ensures code stability, clear version history, and safe experimentation.
+
+---
 
 ## Success Metrics
 - Reduction in appointment scheduling errors.
