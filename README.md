@@ -1,7 +1,7 @@
 # Healthify- Hospital Management System
 
 ## Project Overview
-Healthifyis a centralized, web-based application designed to manage hospital operations efficiently. It integrates patient registration, appointment scheduling, medical records, billing, and pharmacy coordination into a single platform, reducing manual work and improving communication among hospital stakeholders.
+Healthify is a centralized, web-based application designed to manage hospital operations efficiently. It integrates patient registration, appointment scheduling, medical records, billing, and pharmacy coordination into a single platform, reducing manual work and improving communication among hospital stakeholders.
 
 ---
 
