@@ -1,68 +1,40 @@
-import { useState } from "react";
-import "./App.css";
-import logo from "./assets/logo.png";
-import hospitalImg from "./assets/hospital.png";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import "./index.css";
+
+// Page Imports
+import LoginPage from "./pages/LoginPage";
+import AdminDashboard from "./pages/AdminDashboard";
+import BillingPage from "./pages/BillingPage";
+import DoctorDashboard from "./pages/DoctorDashboard";
+import PharmacyManager from "./pages/PharmacyManager";
+import PatientDashboard from "./pages/PatientDashboard";
+
+// Protected Route Wrapper
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const role = localStorage.getItem("userRole");
+  if (!role) return <Navigate to="/login" replace />;
+  if (allowedRoles && !allowedRoles.includes(role)) return <Navigate to="/login" replace />;
+  return children;
+};
 
 function App() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    console.log("Login with:", { fullName, email, password });
-  };
-
   return (
-    <div className="app-container">
-      <nav className="navbar">
-        <div className="logo-container">
-          <img src={logo} alt="Healthify Logo" className="logo" />
-        </div>
-        <div className="nav-links">
-          <a href="#">Home</a>
-          <a href="#">Login</a>
-          <a href="#">Contact us</a>
-          <div className="hamburger-menu">
-            <div className="bar"></div>
-            <div className="bar"></div>
-            <div className="bar"></div>
-          </div>
-        </div>
-      </nav>
+    <Router>
+      <div className="app-layout">
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
 
-      <div className="main-card">
-        <div className="left-section">
-          <h1>WELCOME!</h1>
-          <p className="subtitle">Sign up to create new account</p>
+          <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin", "receptionist"]}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/billing" element={<ProtectedRoute allowedRoles={["admin", "receptionist"]}><BillingPage /></ProtectedRoute>} />
+          <Route path="/doctor" element={<ProtectedRoute allowedRoles={["doctor"]}><DoctorDashboard /></ProtectedRoute>} />
+          <Route path="/pharmacy" element={<ProtectedRoute allowedRoles={["pharmacist", "admin"]}><PharmacyManager /></ProtectedRoute>} />
+          <Route path="/patient" element={<ProtectedRoute allowedRoles={["patient"]}><PatientDashboard /></ProtectedRoute>} />
 
-          <form onSubmit={handleLogin} className="login-form">
-            <input
-              type="text"
-              placeholder="Full Name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button type="submit" className="login-btn">Login</button>
-          </form>
-        </div>
-        <div className="right-section">
-          <img src={hospitalImg} alt="Surgery" className="cover-image" />
-        </div>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
       </div>
-    </div>
+    </Router>
   );
 }
 
