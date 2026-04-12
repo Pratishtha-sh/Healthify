@@ -21,61 +21,62 @@ const LoginPage = () => {
         e.preventDefault();
         setError("");
 
-        const endpoint = isLogin ? "/api/users/login" : "/api/users/register";
+        // MOCK LOGIN LOGIC
+        let assignedRole = userType === "patient" ? "patient" : role;
 
-        // Construct payload based on type
-        const payload = {};
-        if (isLogin) {
-            payload.email = userType === "patient" ? email : staffId; // login handles either
-            payload.password = password;
-        } else {
-            payload.name = name;
-            payload.password = password;
-            payload.role = userType === "patient" ? "patient" : role;
-            if (userType === "patient") payload.email = email;
-            else payload.staffId = staffId;
+        // ID-prefix intercepts (staff only)
+        if (userType === "staff") {
+            const upperID = staffId.toUpperCase();
+            if (upperID.startsWith("DOC")) {
+                assignedRole = "doctor";
+            } else if (upperID.startsWith("REC")) {
+                assignedRole = "receptionist";
+            } else if (upperID.startsWith("ADM")) {
+                assignedRole = "admin";
+            } else if (upperID.startsWith("PHA")) {
+                assignedRole = "pharmacist";
+            }
         }
 
-        try {
-            const res = await fetch(`http://localhost:5000${endpoint}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
+        // Derive stable IDs
+        let userId;
+        let displayName;
+        if (assignedRole === "doctor") {
+            userId = staffId;                              // e.g. "DOC123"
+            displayName = name || "Dr. Sachdev Kumar";
+        } else if (assignedRole === "receptionist" || assignedRole === "admin") {
+            userId = staffId;                              // e.g. "REC001"
+            displayName = name || "Receptionist";
+        } else if (assignedRole === "patient") {
+            // Use email prefix as a stable patient ID
+            userId = email ? "patient_" + email.split("@")[0] : "patient_guest";
+            displayName = name || email?.split("@")[0] || "Patient";
+        } else {
+            userId = staffId || assignedRole;
+            displayName = name || assignedRole;
+        }
 
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Failed request");
+        localStorage.setItem("userRole", assignedRole);
+        localStorage.setItem("userId", userId);
+        localStorage.setItem("userName", displayName);
 
-            // Save token
-            if (data.token) {
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("userRole", data.user.role);
-
-                // Redirect based on role
-                switch (data.user.role) {
-                    case "admin":
-                    case "receptionist":
-                        navigate("/admin");
-                        break;
-                    case "doctor":
-                        navigate("/doctor");
-                        break;
-                    case "pharmacist":
-                        navigate("/pharmacy");
-                        break;
-                    case "patient":
-                        navigate("/patient");
-                        break;
-                    default:
-                        navigate("/");
-                }
-            } else {
-                // Successful signup, switch to login
-                setIsLogin(true);
-                setError("Account created successfully. Please login.");
-            }
-        } catch (err) {
-            setError(err.message);
+        // Redirect based on role
+        switch (assignedRole) {
+            case "admin":
+            case "receptionist":
+                navigate("/admin");
+                break;
+            case "doctor":
+                navigate("/doctor");
+                break;
+            case "pharmacist":
+                navigate("/pharmacy");
+                break;
+            case "patient":
+                navigate("/patient");
+                break;
+            default:
+                navigate("/");
         }
     };
 

@@ -8,8 +8,9 @@ import BillingPage from "./pages/BillingPage";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import PharmacyManager from "./pages/PharmacyManager";
 import PatientDashboard from "./pages/PatientDashboard";
+import PatientBooking from "./pages/PatientBooking";
 
-// Protected Route Wrapper
+// Protected Route Wrapper - only checks local role for mock auth
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const role = localStorage.getItem("userRole");
   if (!role) return <Navigate to="/login" replace />;
@@ -29,6 +30,7 @@ function App() {
           <Route path="/doctor" element={<ProtectedRoute allowedRoles={["doctor"]}><DoctorDashboard /></ProtectedRoute>} />
           <Route path="/pharmacy" element={<ProtectedRoute allowedRoles={["pharmacist", "admin"]}><PharmacyManager /></ProtectedRoute>} />
           <Route path="/patient" element={<ProtectedRoute allowedRoles={["patient"]}><PatientDashboard /></ProtectedRoute>} />
+          <Route path="/patient/book" element={<ProtectedRoute allowedRoles={["patient"]}><PatientBooking /></ProtectedRoute>} />
 
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />

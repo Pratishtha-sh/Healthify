@@ -1,9 +1,10 @@
 const repo = require("../repositories/appointmentRepository");
 
 exports.bookAppointment = async (data) => {
-    if (!data.patient || !data.doctor || !data.date) {
-        throw new Error("Patient, doctor, and date are required");
+    if (!data.patient || !data.date || !data.timeSlot) {
+        throw new Error("Patient, date, and timeSlot are required");
     }
+    // Doctor is optional at booking time - assigned later by receptionist
     return repo.create(data);
 };
 
@@ -16,7 +17,7 @@ exports.getAppointmentsByPatient = (patientId) =>
     repo.findByPatient(patientId);
 
 exports.updateAppointmentStatus = async (id, status) => {
-    const validStatuses = ["scheduled", "completed", "cancelled"];
+    const validStatuses = ["scheduled", "completed", "cancelled", "emergency"];
     if (!validStatuses.includes(status)) {
         throw new Error("Invalid status value");
     }

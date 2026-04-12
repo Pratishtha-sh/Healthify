@@ -3,16 +3,17 @@ const Appointment = require("../models/Appointment");
 exports.create = (data) => Appointment.create(data);
 
 exports.findAll = () =>
-    Appointment.find().populate("patient doctor");
+    Appointment.find().sort({ createdAt: -1 });
 
 exports.findByDoctor = (doctorId) =>
-    Appointment.find({ doctor: doctorId }).populate("patient");
+    Appointment.find({ doctor: doctorId }).sort({ date: 1 });
 
 exports.findByPatient = (patientId) =>
-    Appointment.find({ patient: patientId }).populate("doctor");
+    Appointment.find({ patient: patientId }).sort({ date: 1 });
 
 exports.findById = (id) =>
-    Appointment.findById(id).populate("patient doctor");
+    Appointment.findById(id);
 
 exports.updateStatus = (id, status) =>
     Appointment.findByIdAndUpdate(id, { status }, { new: true });
+

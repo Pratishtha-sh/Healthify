@@ -1,68 +1,116 @@
+import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Card from "./Card";
 
-const CalendarWidget = () => {
-    // A simple static calendar UI to match the mocks
-    const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-    const dates = [
-        [null, null, null, null, null, null, null],
-        [null, 1, 2, 3, 4, 5, 6],
-        [7, 8, 9, 10, 11, 12, 13],
-        [14, 15, 16, 17, 18, 19, 20],
-        [21, 22, 23, 24, 25, 26, 27],
-        [28, 29, 30, "1", "2", "3", "4"],
-    ];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+const CalendarWidget = ({ onDateSelect }) => {
+    const today = new Date();
+    const [viewYear, setViewYear] = useState(today.getFullYear());
+    const [viewMonth, setViewMonth] = useState(today.getMonth()); // 0-indexed
+    const [selectedDate, setSelectedDate] = useState(today.getDate());
+
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const daysInPrev = new Date(viewYear, viewMonth, 0).getDate();
+
+    const prevMonth = () => {
+        if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+        else setViewMonth(m => m - 1);
+    };
+    const nextMonth = () => {
+        if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+        else setViewMonth(m => m + 1);
+    };
+
+    const handleDateClick = (day) => {
+        setSelectedDate(day);
+        if (onDateSelect) {
+            const d = new Date(viewYear, viewMonth, day);
+            onDateSelect(d);
+        }
+    };
+
+    // Build grid cells
+    const cells = [];
+    // Leading empty / prev-month days
+    for (let i = 0; i < firstDay; i++) {
+        cells.push({ day: daysInPrev - firstDay + 1 + i, type: "prev" });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+        cells.push({ day: d, type: "cur" });
+    }
+    // Trailing next-month days to fill grid
+    const remaining = 42 - cells.length;
+    for (let d = 1; d <= remaining; d++) {
+        cells.push({ day: d, type: "next" });
+    }
+
+    const isToday = (day, type) =>
+        type === "cur" &&
+        viewYear === today.getFullYear() &&
+        viewMonth === today.getMonth() &&
+        day === today.getDate();
 
     return (
-        <Card
-            style={{
-                backgroundColor: "#dcedc8", // Light green background from the mock
-                padding: "1.5rem",
-                border: "none",
-                width: "100%",
-                maxWidth: "350px"
-            }}
-        >
-            <div className="flex-between" style={{ marginBottom: "1rem" }}>
-                <ChevronLeft size={18} style={{ cursor: "pointer" }} />
+        <Card style={{ backgroundColor: "#dcedc8", padding: "1.2rem", border: "none", width: "100%", maxWidth: "360px" }}>
+            {/* Header */}
+            <div className="flex-between" style={{ marginBottom: "0.8rem" }}>
+                <ChevronLeft size={18} style={{ cursor: "pointer", color: "#555" }} onClick={prevMonth} />
                 <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <select style={{ padding: "0.2rem", borderRadius: "4px", border: "1px solid #ccc" }}>
-                        <option>Sep</option>
+                    <select
+                        value={viewMonth}
+                        onChange={e => setViewMonth(Number(e.target.value))}
+                        style={{ padding: "0.2rem 0.4rem", borderRadius: "4px", border: "1px solid #ccc", fontSize: "0.85rem" }}
+                    >
+                        {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
                     </select>
-                    <select style={{ padding: "0.2rem", borderRadius: "4px", border: "1px solid #ccc" }}>
-                        <option>2025</option>
+                    <select
+                        value={viewYear}
+                        onChange={e => setViewYear(Number(e.target.value))}
+                        style={{ padding: "0.2rem 0.4rem", borderRadius: "4px", border: "1px solid #ccc", fontSize: "0.85rem" }}
+                    >
+                        {[...Array(6)].map((_, i) => {
+                            const y = today.getFullYear() - 1 + i;
+                            return <option key={y} value={y}>{y}</option>;
+                        })}
                     </select>
                 </div>
-                <ChevronRight size={18} style={{ cursor: "pointer" }} />
+                <ChevronRight size={18} style={{ cursor: "pointer", color: "#555" }} onClick={nextMonth} />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "0.5rem", textAlign: "center", fontSize: "0.8rem", color: "#555" }}>
-                {days.map((day) => (
-                    <div key={day}>{day}</div>
-                ))}
-                {dates.flat().map((date, idx) => {
-                    if (date === null) return <div key={idx}></div>;
-                    const isSelected = date === 9 || date === 13;
-                    const isNextMonth = typeof date === "string";
+            {/* Day headers */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "2px", textAlign: "center", fontSize: "0.78rem", color: "#555", marginBottom: "4px" }}>
+                {DAYS.map(d => <div key={d} style={{ fontWeight: 600 }}>{d}</div>)}
+            </div>
 
+            {/* Date cells */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "2px", textAlign: "center" }}>
+                {cells.map((cell, idx) => {
+                    const isSel = cell.type === "cur" && cell.day === selectedDate && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+                    const iTod = isToday(cell.day, cell.type);
                     return (
                         <div
                             key={idx}
+                            onClick={() => cell.type === "cur" && handleDateClick(cell.day)}
                             style={{
-                                padding: "0.4rem 0",
-                                backgroundColor: isSelected ? "#333" : "transparent",
-                                color: isSelected ? "white" : isNextMonth ? "#aaa" : "inherit",
-                                borderRadius: isSelected ? "4px" : "0",
-                                cursor: "pointer",
-                                fontWeight: isSelected ? "bold" : "normal",
+                                padding: "0.35rem 0",
+                                fontSize: "0.82rem",
+                                borderRadius: "4px",
+                                cursor: cell.type === "cur" ? "pointer" : "default",
+                                color: cell.type !== "cur" ? "#bbb" : isSel ? "white" : iTod ? "white" : "inherit",
+                                backgroundColor: isSel ? "#333" : iTod ? "var(--primary-teal)" : "transparent",
+                                fontWeight: (isSel || iTod) ? "bold" : "normal",
+                                transition: "background-color 0.15s",
                             }}
                         >
-                            {date}
+                            {cell.day}
                         </div>
                     );
                 })}
             </div>
-            <div style={{ textAlign: "center", marginTop: "1rem", color: "#00897b", fontWeight: "bold", fontStyle: "italic", fontSize: "0.9rem" }}>
+            <div style={{ textAlign: "center", marginTop: "0.8rem", color: "var(--primary-teal)", fontWeight: "bold", fontStyle: "italic", fontSize: "0.88rem" }}>
                 Upcoming Appointments
             </div>
         </Card>

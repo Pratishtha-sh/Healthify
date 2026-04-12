@@ -6,7 +6,6 @@ const MedicineCard = ({ title, imgPlaceholder, qty, comp }) => (
     <div className="glow-bg" style={{ padding: "1.5rem", borderRadius: "12px", display: "flex", flexDirection: "column", alignItems: "center" }}>
         <h3 style={{ color: "#004d40", fontSize: "1.4rem", marginBottom: "1rem" }}>{title}</h3>
         <div style={{ width: "100%", height: "200px", backgroundColor: "#fff", border: "1px solid #ddd", marginBottom: "1rem", display: "flex", justifyContent: "center", alignItems: "center", color: "#ccc" }}>
-            {/* We will leave this as a white box since we don't have the actual pill images */}
             Image Placeholder
         </div>
         <div className="flex-between" style={{ width: "100%", color: "#004d40", fontSize: "0.9rem", alignItems: "flex-start" }}>
@@ -25,26 +24,38 @@ const MedicineCard = ({ title, imgPlaceholder, qty, comp }) => (
 const PharmacyManager = () => {
     const [inventory, setInventory] = useState([
         { title: "Atorvastatin(10mg)", qty: 300, comp: "dihydroxy monocarboxylic" },
-        { title: "Metformin", qty: 455, comp: "Metformin Hydrochloride" },
-        { title: "Lisinopril (20 mg)", qty: 348, comp: "Lisinopril dihydrate" },
-        { title: "Albuterol", qty: 276, comp: "albuterol sulphate" },
-        { title: "Omezaprole (20mg)", qty: 598, comp: "Omeprazole" },
-        { title: "Losarton (50mg)", qty: 390, comp: "Losarton Potassium" },
     ]);
+    const [prescriptions, setPrescriptions] = useState([]);
 
-    useEffect(() => {
-        fetch("http://localhost:5000/api/medicines")
-            .then(res => res.json())
-            .then(data => {
-                if (Array.isArray(data) && data.length > 0) {
-                    const formatted = data.map(m => ({
-                        title: m.name, qty: m.quantity, comp: m.composition
-                    }));
-                    setInventory(formatted);
-                }
-            })
-            .catch(err => console.error("Error fetching medicines:", err));
-    }, []);
+    const fetchData = async () => {
+        try {
+            const medRes = await fetch("http://localhost:5000/api/medicines");
+            const medData = await medRes.json();
+            if (Array.isArray(medData) && medData.length > 0) {
+                setInventory(medData.map(m => ({ title: m.name, qty: m.quantity, comp: m.composition })));
+            }
+            const presRes = await fetch("http://localhost:5000/api/prescriptions/pending");
+            const presData = await presRes.json();
+            setPrescriptions(Array.isArray(presData) ? presData : []);
+        } catch (err) {
+            console.error("Error fetching data:", err);
+        }
+    };
+
+    useEffect(() => { fetchData() }, []);
+
+    const fulfillPrescription = async (id) => {
+        try {
+            await fetch(`http://localhost:5000/api/prescriptions/${id}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "fulfilled" })
+            });
+            fetchData();
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     return (
         <>
@@ -77,6 +88,24 @@ const PharmacyManager = () => {
                             }}
                         />
                     </div>
+                </div>
+
+                {/* Pending Prescriptions Section */}
+                <div style={{ marginBottom: "3rem" }}>
+                    <h2 style={{ color: "#004d40", marginBottom: "1rem" }}>Pending Prescriptions</h2>
+                    {prescriptions.length === 0 ? <p>No pending prescriptions from doctors.</p> : (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
+                            {prescriptions.map(p => (
+                                <div key={p._id} className="glow-bg" style={{ padding: "1rem", borderRadius: "8px", minWidth: "300px" }}>
+                                    <p><strong>Patient:</strong> {p.patientId}</p>
+                                    <ul style={{ margin: "10px 0" }}>
+                                        {p.medications.map((m, i) => <li key={i}>{m.name} ({m.dosage}) - Qty: {m.quantity}</li>)}
+                                    </ul>
+                                    <button onClick={() => fulfillPrescription(p._id)} className="btn-primary" style={{ padding: "0.5rem 1rem" }}>Mark Fulfilled</button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid-3" style={{ rowGap: "3rem", columnGap: "2rem" }}>
