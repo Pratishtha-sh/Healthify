@@ -17,9 +17,13 @@ exports.getAppointmentsByPatient = (patientId) =>
     repo.findByPatient(patientId);
 
 exports.updateAppointmentStatus = async (id, status) => {
-    const validStatuses = ["scheduled", "completed", "cancelled", "emergency"];
+    const validStatuses = ["scheduled", "completed", "cancelled", "emergency", "pending"];
     if (!validStatuses.includes(status)) {
         throw new Error("Invalid status value");
     }
     return repo.updateStatus(id, status);
+};
+
+exports.assignDoctor = async (id, { status, doctor, doctorName }) => {
+    return repo.assignDoctor(id, { status, doctor, doctorName });
 };

@@ -17,3 +17,10 @@ exports.findById = (id) =>
 exports.updateStatus = (id, status) =>
     Appointment.findByIdAndUpdate(id, { status }, { new: true });
 
+exports.assignDoctor = (id, { status, doctor, doctorName }) =>
+    Appointment.findByIdAndUpdate(
+        id,
+        { status: status || "scheduled", doctor, doctorName },
+        { new: true }
+    );
+
