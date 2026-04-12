@@ -12,7 +12,11 @@ const BillingPage = () => {
                 if (Array.isArray(data) && data.length > 0) {
                     // Format backend data to match UI
                     const formatted = data.map((b, i) => ({
-                        id: b._id, sno: `${i + 1}).`, patient: b.patient?.name || "Unknown", doctor: b.doctor?.name || "Unknown", amount: `Rs. ${b.amount}`
+                        id: b._id, 
+                        sno: `${i + 1}).`, 
+                        patient: typeof b.patient === 'object' ? (b.patient?.name || "MockPatient") : (b.patient || "Walk In"), 
+                        doctor: typeof b.doctor === 'object' ? (b.doctor?.name || "MockDoctor") : (b.doctor || "Dr. Sachdev Kumar"), 
+                        amount: `Rs. ${b.amount}`
                     }));
                     setBills(formatted);
                 }

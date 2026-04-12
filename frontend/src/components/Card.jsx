@@ -1,10 +1,9 @@
-const Card = ({ children, className = "", style = {} }) => {
+const Card = ({ children, className = "", style = {}, onClick }) => {
     return (
         <div
             className={`premium-card ${className}`}
-            style={{
-                ...style,
-            }}
+            style={{ ...style }}
+            onClick={onClick}
         >
             {children}
         </div>

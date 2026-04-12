@@ -47,3 +47,14 @@ exports.updateStatus = async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 };
+
+// Receptionist assigns a specific doctor when approving
+exports.assignDoctor = async (req, res) => {
+    try {
+        const { status, doctor, doctorName } = req.body;
+        const result = await service.assignDoctor(req.params.id, { status, doctor, doctorName });
+        res.json(result);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+};
