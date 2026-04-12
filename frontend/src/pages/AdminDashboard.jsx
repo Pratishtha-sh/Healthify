@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Card from "../components/Card";
 import CalendarWidget from "../components/CalendarWidget";
-import { getDoctorsBySpecialty } from "../data/mockDoctors";
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
@@ -27,6 +26,8 @@ const AdminDashboard = () => {
     const [doctorOptions,     setDoctorOptions]     = useState([]);
     const [selectedDoctorId,  setSelectedDoctorId]  = useState("");
 
+    const [allDoctors, setAllDoctors] = useState([]); // real doctors from DB
+
     const fetchAppointments = () => {
         fetch("http://localhost:5000/api/appointments")
             .then(r => r.json())
@@ -34,21 +35,33 @@ const AdminDashboard = () => {
             .catch(console.error);
     };
 
-    useEffect(() => { fetchAppointments(); }, []);
+    useEffect(() => {
+        fetchAppointments();
+        // Fetch real doctors from DB
+        fetch("http://localhost:5000/api/users/role/doctor")
+            .then(r => r.json())
+            .then(d => Array.isArray(d) && setAllDoctors(d))
+            .catch(console.error);
+    }, []);
 
-    // Open modal: filter doctors by specialty
+    // Open modal: filter real DB doctors by specialty
     const openDoctorPicker = (app, status) => {
-        const docs = getDoctorsBySpecialty(app.specialtyRequested || "General Physician");
-        setDoctorOptions(docs);
-        setSelectedDoctorId(docs[0]?.id || "");
+        const docs = allDoctors.filter(d =>
+            !app.specialtyRequested || d.specialty === app.specialtyRequested
+        );
+        // If no match for specialty, show all doctors
+        const finalDocs = docs.length > 0 ? docs : allDoctors;
+        setDoctorOptions(finalDocs);
+        setSelectedDoctorId(finalDocs[0]?._id || "");
         setPickerApp(app);
         setPickerStatus(status);
     };
 
-    // Confirm assignment
+    // Confirm assignment (using real MongoDB _id)
     const confirmAssignment = async () => {
         if (!pickerApp || !selectedDoctorId) return;
-        const doc = doctorOptions.find(d => d.id === selectedDoctorId);
+        const doc = doctorOptions.find(d => d._id === selectedDoctorId);
+        if (!doc) return;
         setApproving(pickerApp._id);
         try {
             await fetch(`http://localhost:5000/api/appointments/${pickerApp._id}/assign-doctor`, {
@@ -56,7 +69,7 @@ const AdminDashboard = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     status: pickerStatus,
-                    doctor: doc.id,
+                    doctor: doc._id,
                     doctorName: doc.name,
                 })
             });
@@ -150,28 +163,35 @@ const AdminDashboard = () => {
                             </p>
                         ) : (
                             <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginBottom: "1.5rem" }}>
-                                {doctorOptions.map(doc => (
+                                {doctorOptions.length === 0 ? (
+                                        <p style={{ color: "var(--text-muted)", fontStyle: "italic", marginBottom: "1rem" }}>
+                                            No {pickerApp?.specialtyRequested} doctors registered yet. Showing all available doctors.
+                                        </p>
+                                    ) : null}
+                                    {doctorOptions.map(doc => (
                                     <label
-                                        key={doc.id}
+                                        key={doc._id}
                                         style={{
                                             display: "flex", alignItems: "center", gap: "1rem",
                                             padding: "0.9rem 1rem", borderRadius: "10px", cursor: "pointer",
-                                            border: `2px solid ${selectedDoctorId === doc.id ? "var(--primary-teal)" : "#e0e0e0"}`,
-                                            background: selectedDoctorId === doc.id ? "var(--glass-glow)" : "white",
+                                            border: `2px solid ${selectedDoctorId === doc._id ? "var(--primary-teal)" : "#e0e0e0"}`,
+                                            background: selectedDoctorId === doc._id ? "var(--glass-glow)" : "white",
                                             transition: "all 0.15s"
                                         }}
                                     >
                                         <input
                                             type="radio"
                                             name="doctor"
-                                            value={doc.id}
-                                            checked={selectedDoctorId === doc.id}
-                                            onChange={() => setSelectedDoctorId(doc.id)}
+                                            value={doc._id}
+                                            checked={selectedDoctorId === doc._id}
+                                            onChange={() => setSelectedDoctorId(doc._id)}
                                             style={{ accentColor: "var(--primary-teal)" }}
                                         />
                                         <div>
                                             <div style={{ fontWeight: 600, color: "var(--primary-dark)" }}>{doc.name}</div>
-                                            <div style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>{doc.qualification}</div>
+                                            <div style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                                                {doc.qualification && `${doc.qualification} · `}{doc.specialty}
+                                            </div>
                                         </div>
                                     </label>
                                 ))}
@@ -317,20 +337,20 @@ const AdminDashboard = () => {
 
                 {/* ── Action Cards ── */}
                 <div className="grid-3">
-                    <Card className="flex-center glow-bg hover-lift" style={{ flexDirection: "column", padding: "2rem 1rem", border: "none", cursor: "pointer" }}>
+                    <Card className="flex-center glow-bg hover-lift" onClick={() => navigate("/admin/schedule")} style={{ flexDirection: "column", padding: "2rem 1rem", border: "none", cursor: "pointer" }}>
                         <CalendarPlus size={72} strokeWidth={1.2} color="#111" style={{ marginBottom: "1rem" }} />
                         <h3 style={{ color: "var(--primary-teal)", textAlign: "center", fontSize: "1.3rem", marginBottom: "1.2rem" }}>Schedule<br />Appointments</h3>
-                        <button className="btn-primary" style={{ width: "80%", fontSize: "1rem" }}>Proceed</button>
+                        <button className="btn-primary" style={{ width: "80%", fontSize: "1rem" }} onClick={e => { e.stopPropagation(); navigate("/admin/schedule"); }}>Proceed</button>
                     </Card>
-                    <Card className="flex-center glow-bg hover-lift" style={{ flexDirection: "column", padding: "2rem 1rem", border: "none", cursor: "pointer" }}>
+                    <Card className="flex-center glow-bg hover-lift" onClick={() => navigate("/admin/rooms")} style={{ flexDirection: "column", padding: "2rem 1rem", border: "none", cursor: "pointer" }}>
                         <BedDouble size={72} strokeWidth={1.2} color="#111" style={{ marginBottom: "1rem" }} />
                         <h3 style={{ color: "var(--primary-teal)", textAlign: "center", fontSize: "1.3rem", marginBottom: "1.2rem" }}>Appoint<br />Rooms</h3>
-                        <button className="btn-primary" style={{ width: "80%", fontSize: "1rem" }}>Proceed</button>
+                        <button className="btn-primary" style={{ width: "80%", fontSize: "1rem" }} onClick={e => { e.stopPropagation(); navigate("/admin/rooms"); }}>Proceed</button>
                     </Card>
-                    <Card className="flex-center glow-bg hover-lift" style={{ flexDirection: "column", padding: "2rem 1rem", border: "none", cursor: "pointer" }}>
+                    <Card className="flex-center glow-bg hover-lift" onClick={() => navigate("/admin/register-patient")} style={{ flexDirection: "column", padding: "2rem 1rem", border: "none", cursor: "pointer" }}>
                         <ClipboardList size={72} strokeWidth={1.2} color="#111" style={{ marginBottom: "1rem" }} />
                         <h3 style={{ color: "var(--primary-teal)", textAlign: "center", fontSize: "1.3rem", marginBottom: "1.2rem" }}>Patient<br />Registration</h3>
-                        <button className="btn-primary" style={{ width: "80%", fontSize: "1rem" }}>Proceed</button>
+                        <button className="btn-primary" style={{ width: "80%", fontSize: "1rem" }} onClick={e => { e.stopPropagation(); navigate("/admin/register-patient"); }}>Proceed</button>
                     </Card>
                 </div>
 

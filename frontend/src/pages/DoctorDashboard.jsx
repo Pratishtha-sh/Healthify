@@ -13,17 +13,25 @@ const DoctorDashboard = () => {
     const [activeTab, setActiveTab] = useState("home");
     const [prescribeStatus, setPrescribeStatus] = useState("");
 
-    const doctorId = localStorage.getItem("userId") || "DOC123";
-    const doctorName = doctorId.toUpperCase().startsWith("DOC") ? "Dr. Sachdev Kumar" : "Doctor";
+    const doctorId   = localStorage.getItem("userId")   || "";
+    const doctorName = localStorage.getItem("userName")  || "Doctor";
+    const doctorSpecialty = localStorage.getItem("userSpecialty") || "";
 
     const fetchAppointments = () => {
         fetch("http://localhost:5000/api/appointments")
             .then(res => res.json())
-            .then(data => setAppointments(Array.isArray(data) ? data : []))
+            .then(data => {
+                if (Array.isArray(data)) {
+                    // Only show appointments assigned to this doctor
+                    setAppointments(data.filter(a =>
+                        a.doctor === doctorId && (a.status === "scheduled" || a.status === "emergency")
+                    ));
+                }
+            })
             .catch(err => console.error("Error fetching appointments:", err));
     };
 
-    useEffect(() => { fetchAppointments(); }, []);
+    useEffect(() => { fetchAppointments(); }, [doctorId]);
 
     const simulateOperation = () => {
         setStats(prev => ({
@@ -49,10 +57,11 @@ const DoctorDashboard = () => {
     const submitPrescription = async (e) => {
         e.preventDefault();
         const payload = {
-            patientId: selectedApp.patient || "MockPatient",
-            doctorId: doctorId,
+            patientId:   selectedApp.patient || "UnknownPatient",
+            doctorId:    doctorId,
+            doctorName:  doctorName,
             medications: meds,
-            tips: tips
+            tips:        tips
         };
         try {
             await fetch("http://localhost:5000/api/prescriptions", {
